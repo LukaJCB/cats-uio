@@ -1,7 +1,10 @@
 package cats.effect.uio
 
 import cats.{Applicative, Monad, MonadError, Monoid, Parallel, Semigroup, ~>}
-import cats.effect.IO
+import cats.effect.{Fiber, IO, Timer}
+
+import scala.concurrent.Future
+import scala.concurrent.duration.FiniteDuration
 
 
 private[uio] trait Newtype { self =>
@@ -26,6 +29,58 @@ object UIO extends UIOInstances with Newtype {
   def unsafeFromIO[A](ioa: IO[A]): UIO[A] = create(ioa)
 
   def pure[A](x: A): UIO[A] = create(IO.pure(x))
+
+  def apply[A](x: => A): UIO[Either[Throwable, A]] =
+    fromIO(IO(x))
+
+  def async[A](k: (Either[Throwable, A] => Unit) => Unit): UIO[Either[Throwable, A]] =
+    fromIO(IO.async(k))
+
+  def suspend[A](thunk: => UIO[A]): UIO[A] =
+    unsafeFromIO(IO.suspend(runUIO(thunk)))
+
+  val unit: UIO[Unit] =
+    pure(())
+
+  def race[A, B](lh: UIO[A], rh: UIO[B]): UIO[Either[A, B]] =
+    unsafeFromIO(IO.race(runUIO(lh), runUIO(rh)))
+
+
+  def cancelable[A](k: (Either[Throwable, A] => Unit) => IO[Unit]): UIO[Either[Throwable, A]] =
+     fromIO(IO.cancelable(k))
+
+
+  def start[A](uioa: UIO[A]): UIO[Fiber[UIO, A]] =
+    unsafeFromIO(runUIO(uioa).start.map(uioFiber))
+
+
+  def fromFuture[A](iof: UIO[Future[A]]): UIO[Either[Throwable, A]] =
+    fromIO(IO.fromFuture(runUIO(iof)))
+
+  def shift(implicit timer: Timer[UIO]): UIO[Unit] =
+    timer.shift
+
+  def sleep(duration: FiniteDuration)(implicit timer: Timer[UIO]): UIO[Unit] =
+    timer.sleep(duration)
+
+  val cancelBoundary: UIO[Unit] = unsafeFromIO(IO.cancelBoundary)
+
+  def racePair[A, B](lh: UIO[A], rh: UIO[B]): UIO[Either[(A, Fiber[UIO, B]), (Fiber[UIO, A], B)]] = {
+    import cats.syntax.bifunctor._
+    import cats.instances.either._
+
+    UIO.unsafeFromIO(IO.racePair(runUIO(lh), runUIO(rh)).map { e =>
+      e.bimap({
+        case (a, fiber) => (a, uioFiber(fiber))
+      }, {
+        case (fiber, b) => (uioFiber(fiber), b)
+      })
+    })
+  }
+
+  private def uioFiber[A](f: Fiber[IO, A]): Fiber[UIO, A] =
+    Fiber(unsafeFromIO(f.join), unsafeFromIO(f.cancel))
+
 }
 
 private[uio] abstract class UIOParallelNewtype {
