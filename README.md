@@ -1,4 +1,4 @@
-# cats-uio
+# cats-unexceptional
 
 This library provides an IO type that is guaranteed to have no exceptions.
 This can be useful, as usually when you're given an `IO[A]`, you never quite know if the computation will be successful or not.
@@ -13,6 +13,13 @@ With `EitherT[UIO, E, ?], E]` there's only one error type and therefore only one
 
 `UIO` comes with almost all features the current `cats.effect.IO` has, which includes running two `UIO`s in parallel,
 racing them, cancelling a running process and more!
+
+There's also a datatype called `Unexceptional` which has the form `Unexceptional[F[_], A]`.
+The `F[_]` here represents an effect type (like `IO`) and `Unexceptional` will turn `F` into an effect type without exceptions.
+Therefore `UIO[A]` and `Unexceptional[IO, A]` are actually equivalent.
+Other uses could be something like `Unexceptional[monix.eval.Task, A]`, `Unexceptional[Observable, A]` or even `Unexceptional[fs2.Stream[IO, ?], A]`.
+
+`Unexceptional` also supports all the operations `UIO` supports.
 
 
 ### Caveats
