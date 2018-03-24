@@ -1,4 +1,4 @@
-package cats.effect.uio
+package cats.effect.unexceptional
 package tests
 
 import cats.Eq

@@ -1,4 +1,4 @@
-package cats.effect.uio
+package cats.effect.unexceptional
 
 import cats.{Applicative, Monad, MonadError, Monoid, Parallel, Semigroup, ~>}
 import cats.effect.{Fiber, IO, Timer}
@@ -7,9 +7,9 @@ import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
 
-private[uio] trait Newtype { self =>
-  private[uio] type Base
-  private[uio] trait Tag extends Any
+private[unexceptional] trait Newtype { self =>
+  private[unexceptional] type Base
+  private[unexceptional] trait Tag extends Any
   type Type[A] <: Base with Tag
 }
 
@@ -83,7 +83,7 @@ object UIO extends UIOInstances with Newtype {
 
 }
 
-private[uio] abstract class UIOParallelNewtype {
+private[unexceptional] abstract class UIOParallelNewtype {
 
   type Par[A] = Par.Type[A]
 
@@ -98,7 +98,7 @@ private[uio] abstract class UIOParallelNewtype {
   }
 }
 
-private[uio] sealed abstract class UIOInstances extends UIOParallelNewtype {
+private[unexceptional] sealed abstract class UIOInstances extends UIOParallelNewtype {
   implicit val catsEffectMonadForUIO: Monad[UIO] = new Monad[UIO] {
     def tailRecM[A, B](a: A)(f: A => UIO[Either[A, B]]): UIO[B] =
       UIO.create(Monad[IO].tailRecM(a)(f andThen UIO.runUIO))
