@@ -13,7 +13,7 @@ private[unexceptional] trait Newtype { self =>
   type Type[A] <: Base with Tag
 }
 
-object UIO extends UIOInstances with Newtype {
+object UIOImpl extends UIOInstances with Newtype {
   private[cats] def create[A](s: IO[A]): Type[A] =
     s.asInstanceOf[Type[A]]
 
@@ -69,7 +69,7 @@ object UIO extends UIOInstances with Newtype {
     import cats.syntax.bifunctor._
     import cats.instances.either._
 
-    UIO.unsafeFromIO(IO.racePair(runUIO(lh), runUIO(rh)).map { e =>
+    UIOImpl.unsafeFromIO(IO.racePair(runUIO(lh), runUIO(rh)).map { e =>
       e.bimap({
         case (a, fiber) => (a, uioFiber(fiber))
       }, {
@@ -101,37 +101,37 @@ private[unexceptional] abstract class UIOParallelNewtype {
 private[unexceptional] sealed abstract class UIOInstances extends UIOParallelNewtype {
   implicit val catsEffectMonadForUIO: Monad[UIO] = new Monad[UIO] {
     def tailRecM[A, B](a: A)(f: A => UIO[Either[A, B]]): UIO[B] =
-      UIO.create(Monad[IO].tailRecM(a)(f andThen UIO.runUIO))
+      UIOImpl.create(Monad[IO].tailRecM(a)(f andThen UIOImpl.runUIO))
 
     def flatMap[A, B](fa: UIO[A])(f: A => UIO[B]): UIO[B] =
-      UIO.create(Monad[IO].flatMap(UIO.runUIO(fa))(f andThen UIO.runUIO))
+      UIOImpl.create(Monad[IO].flatMap(UIOImpl.runUIO(fa))(f andThen UIOImpl.runUIO))
 
     def pure[A](x: A): UIO[A] =
-      UIO.pure(x)
+      UIOImpl.pure(x)
   }
 
-  implicit val catsEffectApplicativeForParUIO: Applicative[UIO.Par] = new Applicative[UIO.Par] {
-    def pure[A](x: A): UIO.Par[A] = UIO.Par.fromUIO(UIO.pure(x))
+  implicit val catsEffectApplicativeForParUIO: Applicative[UIOImpl.Par] = new Applicative[UIOImpl.Par] {
+    def pure[A](x: A): UIOImpl.Par[A] = UIOImpl.Par.fromUIO(UIOImpl.pure(x))
 
-    def ap[A, B](ff: UIO.Par[A => B])(fa: UIO.Par[A]): UIO.Par[B] =
-      UIO.Par.fromUIO(UIO.create(Parallel.parAp(UIO.runUIO(UIO.Par.toUIO(ff)))(UIO.runUIO(UIO.Par.toUIO(fa)))))
+    def ap[A, B](ff: UIOImpl.Par[A => B])(fa: UIOImpl.Par[A]): UIOImpl.Par[B] =
+      UIOImpl.Par.fromUIO(UIOImpl.create(Parallel.parAp(UIOImpl.runUIO(UIOImpl.Par.toUIO(ff)))(UIOImpl.runUIO(UIOImpl.Par.toUIO(fa)))))
   }
 
-  implicit val catsEffectParallelForUIO: Parallel[UIO, UIO.Par] = new Parallel[UIO, UIO.Par] {
-    def applicative: Applicative[UIO.Par] = catsEffectApplicativeForParUIO
+  implicit val catsEffectParallelForUIO: Parallel[UIO, UIOImpl.Par] = new Parallel[UIO, UIOImpl.Par] {
+    def applicative: Applicative[UIOImpl.Par] = catsEffectApplicativeForParUIO
 
     def monad: Monad[UIO] = catsEffectMonadForUIO
 
-    def sequential: ~>[UIO.Par, UIO] =
-      new ~>[UIO.Par, UIO] { def apply[A](fa: UIO.Par[A]): UIO[A] = UIO.Par.toUIO(fa) }
+    def sequential: ~>[UIOImpl.Par, UIO] =
+      new ~>[UIOImpl.Par, UIO] { def apply[A](fa: UIOImpl.Par[A]): UIO[A] = UIOImpl.Par.toUIO(fa) }
 
-    def parallel: ~>[UIO, UIO.Par] =
-      new ~>[UIO, UIO.Par] { def apply[A](fa: UIO[A]): UIO.Par[A] = UIO.Par.fromUIO(fa) }
+    def parallel: ~>[UIO, UIOImpl.Par] =
+      new ~>[UIO, UIOImpl.Par] { def apply[A](fa: UIO[A]): UIOImpl.Par[A] = UIOImpl.Par.fromUIO(fa) }
   }
 
   implicit def catsEffectMonoidForUIO[A: Monoid]: Monoid[UIO[A]] = new Monoid[UIO[A]] {
-    def empty: UIO[A] = UIO.pure(Monoid[A].empty)
+    def empty: UIO[A] = UIOImpl.pure(Monoid[A].empty)
     def combine(x: UIO[A], y: UIO[A]): UIO[A] =
-      UIO.create(UIO.runUIO(x).flatMap(a1 => UIO.runUIO(y).map(a2 => Semigroup[A].combine(a1, a2))))
+      UIOImpl.create(UIOImpl.runUIO(x).flatMap(a1 => UIOImpl.runUIO(y).map(a2 => Semigroup[A].combine(a1, a2))))
   }
 }

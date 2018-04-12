@@ -67,7 +67,7 @@ private[unexceptional] sealed abstract class UnexceptionalInstances {
     }
 }
 
-object Unexceptional extends UnexceptionalInstances with NewtypeK {
+object UnexceptionalImpl extends UnexceptionalInstances with NewtypeK {
 
   private[cats] def create[F[_], A](s: F[A]): Type[F, A] =
     s.asInstanceOf[Type[F, A]]

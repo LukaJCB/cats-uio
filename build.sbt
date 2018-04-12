@@ -6,7 +6,7 @@ import org.typelevel.Dependencies._
 addCommandAlias("gitSnapshots", ";set version in ThisBuild := git.gitDescribedVersion.value.get + \"-SNAPSHOT\"")
 
 val apache2 = "Apache-2.0" -> url("https://www.apache.org/licenses/LICENSE-2.0.html")
-val gh = GitHubSettings(org = "lukajcb", proj = "cats-uio", publishOrg = "org.typelevel", license = apache2)
+val gh = GitHubSettings(org = "lukajcb", proj = "cats-uio", publishOrg = "com.github.lukajcb", license = apache2)
 val devs = Seq(Dev("Luka Jacobowitz", "@lukajcb"))
 
 val vAll = Versions(versions, libraries, scalacPlugins)
@@ -75,6 +75,68 @@ lazy val docs = project.configure(mkDocConfig(gh, rootSettings, commonJvmSetting
   coreJVM))
 
 lazy val buildSettings = sharedBuildSettings(gh, vAll)
+
+useGpg := false
+usePgpKeyHex("7872706ADA343DF6")
+pgpPublicRing := baseDirectory.value / "project" / ".gnupg" / "pubring.gpg"
+pgpSecretRing := baseDirectory.value / "project" / ".gnupg" / "secring.gpg"
+pgpPassphrase := sys.env.get("PGP_PASS").map(_.toArray)
+
+sonatypeProfileName := organization.value
+
+credentials += Credentials(
+  "Sonatype Nexus Repository Manager",
+  "oss.sonatype.org",
+  sys.env.getOrElse("SONATYPE_USER", ""),
+  sys.env.getOrElse("SONATYPE_PASS", "")
+)
+
+isSnapshot := version.value endsWith "SNAPSHOT"
+
+publishTo := Some(
+  if (isSnapshot.value)
+    Opts.resolver.sonatypeSnapshots
+  else
+    Opts.resolver.sonatypeStaging
+)
+
+licenses := Seq(apache2)
+homepage := Some(url("https://github.com/LukaJCB/cats-uio"))
+
+scmInfo := Some(
+  ScmInfo(
+    url("https://github.com/LukaJCB/cats-uio"),
+    "scm:git@github.com:LukaJCB/cats-uio.git"
+  ))
+
+developers := List(
+  Developer(
+    id="LukaJCB",
+    name="Luka Jacobowitz",
+    email="noreply@jacobowitz.org",
+    url=url("https://lukajcb.github.io")
+  ))
+
+enablePlugins(GitVersioning)
+
+/* The BaseVersion setting represents the in-development (upcoming) version,
+ * as an alternative to SNAPSHOTS.
+ */
+git.baseVersion := "3.0.0"
+
+val ReleaseTag = """^v([\d\.]+)$""".r
+git.gitTagToVersionNumber := {
+  case ReleaseTag(v) => Some(v)
+  case _ => None
+}
+
+git.formattedShaVersion := {
+  val suffix = git.makeUncommittedSignifierSuffix(git.gitUncommittedChanges.value, git.uncommittedSignifier.value)
+
+  git.gitHeadCommit.value map { _.substring(0, 7) } map { sha =>
+    git.baseVersion.value + "-" + sha + suffix
+  }
+}
 
 lazy val commonSettings = sharedCommonSettings ++ Seq(
   parallelExecution in Test := false,
