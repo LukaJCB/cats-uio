@@ -78,8 +78,8 @@ object UnexceptionalImpl extends UnexceptionalInstances with NewtypeK {
   def runUnexceptional[F[_], A](ufa: Unexceptional[F, A]): F[A] =
     ufa.asInstanceOf[F[A]]
 
-  def runEitherIO[F[_]: Sync, A](ufa: Unexceptional[F, Either[Throwable, A]]): F[A] =
-    MonadError[F, Throwable].rethrow(runUnexceptional(ufa))
+  def runEither[F[_], A](ufa: Unexceptional[F, Either[Throwable, A]])(implicit F: MonadError[F, Throwable]): F[A] =
+    F.rethrow(runUnexceptional(ufa))
 
   def unsafeFromF[F[_], A](fa: F[A]): Unexceptional[F, A] = create(fa)
 
