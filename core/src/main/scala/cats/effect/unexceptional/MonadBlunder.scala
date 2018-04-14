@@ -38,6 +38,8 @@ trait MonadBlunder[F[_], G[_], E] {
 
 object MonadBlunder {
 
+  def apply[F[_], G[_], E](implicit ev: MonadBlunder[F, G, E]): MonadBlunder[F, G, E] = ev
+
   trait MonadBlunderLaws[F[_], G[_], E, A] {
     def deriveHandleError(fa: F[A])
                          (f: E => A)
