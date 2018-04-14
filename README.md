@@ -1,4 +1,5 @@
-# cats-unexceptional
+# cats-unexceptional 
+[![Build Status](https://travis-ci.org/LukaJCB/cats-uio.svg?branch=master)](https://travis-ci.org/LukaJCB/cats-uio)
 
 This library provides an IO type that is guaranteed to have no exceptions.
 This can be useful, as usually when you're given an `IO[A]`, you never quite know if the computation will be successful or not.
