@@ -1,7 +1,7 @@
 package cats.effect.unexceptional
 
-import cats.data.{EitherT, IndexedStateT, OptionT, StateT}
-import cats.{Eq, Id, Monad, MonadError, ~>}
+import cats.data._
+import cats.{Eq, Id, Monad, MonadError, Monoid, ~>}
 import cats.effect.IO
 import cats.syntax.all._
 
@@ -178,6 +178,42 @@ object MonadBlunder {
 
       def handleBlunderWith[A](fa: StateT[F, S, A])(f: E => StateT[G, S, A]): StateT[G, S, A] =
         IndexedStateT(s => M.handleBlunderWith(fa.run(s))(e => f(e).run(s)))
+
+    }
+
+  implicit def catsEndeavorForKleisli[F[_], G[_], R, E]
+  (implicit M: MonadBlunder[F, G, E]): MonadBlunder[Kleisli[F, R, ?], Kleisli[G, R, ?], E] =
+    new MonadBlunder[Kleisli[F, R, ?], Kleisli[G, R, ?], E] {
+      implicit val F: MonadError[F, E] = M.monadErrorF
+      implicit val G: Monad[G] = M.monadG
+
+      val monadErrorF: MonadError[Kleisli[F, R, ?], E] = Kleisli.catsDataMonadErrorForKleisli
+      val monadG: Monad[Kleisli[G, R, ?]] = Kleisli.catsDataMonadForKleisli
+
+      def accept[A](ga: Kleisli[G, R, A]): Kleisli[F, R, A] = ga.mapK(new (G ~> F) {
+        def apply[T](ga: G[T]): F[T] = M.accept(ga)
+      })
+
+      def handleBlunderWith[A](fa: Kleisli[F, R, A])(f: E => Kleisli[G, R, A]): Kleisli[G, R, A] =
+        Kleisli(r => M.handleBlunderWith(fa.run(r))(e => f(e).run(r)))
+
+    }
+
+  implicit def catsEndeavorForWriterT[F[_], G[_], L: Monoid, E]
+  (implicit M: MonadBlunder[F, G, E]): MonadBlunder[WriterT[F, L, ?], WriterT[G, L, ?], E] =
+    new MonadBlunder[WriterT[F, L, ?], WriterT[G, L, ?], E] {
+      implicit val F: MonadError[F, E] = M.monadErrorF
+      implicit val G: Monad[G] = M.monadG
+
+      val monadErrorF: MonadError[WriterT[F, L, ?], E] = WriterT.catsDataMonadErrorForWriterT
+      val monadG: Monad[WriterT[G, L, ?]] = WriterT.catsDataMonadForWriterT
+
+      def accept[A](ga: WriterT[G, L, A]): WriterT[F, L, A] = ga.mapK(new (G ~> F) {
+        def apply[T](ga: G[T]): F[T] = M.accept(ga)
+      })
+
+      def handleBlunderWith[A](fa: WriterT[F, L, A])(f: E => WriterT[G, L, A]): WriterT[G, L, A] =
+        WriterT(M.handleBlunderWith(fa.run)(e => f(e).run))
 
     }
 }

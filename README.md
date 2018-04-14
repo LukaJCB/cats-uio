@@ -26,3 +26,7 @@ Other uses could be something like `Unexceptional[monix.eval.Task, A]`, `Unexcep
 ### Caveats
 
 Because of the way the `cats-effect` type classes are structured, unfortunately `UIO` cannot work with them directly, as they all require `MonadError`, which `UIO` can't provide.
+
+## MonadBlunder
+
+Check [this blog post](https://typelevel.org/blog/2018/04/13/rethinking-monaderror.html) for more on that.
