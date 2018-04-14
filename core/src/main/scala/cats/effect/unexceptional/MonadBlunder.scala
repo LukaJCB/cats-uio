@@ -8,8 +8,8 @@ import cats.syntax.all._
 import scala.concurrent.{ExecutionContext, Future}
 
 trait MonadBlunder[F[_], G[_], E] {
-  def monadErrorF: MonadError[F, E]
-  def monadG: Monad[G]
+  val monadErrorF: MonadError[F, E]
+  val monadG: Monad[G]
 
   def handleBlunderWith[A](fa: F[A])(f: E => G[A]): G[A]
 
@@ -76,8 +76,8 @@ object MonadBlunder {
 
 
   implicit val catsEndeavorForIO: MonadBlunder[IO, UIO, Throwable] = new MonadBlunder[IO, UIO, Throwable] {
-    def monadErrorF: MonadError[IO, Throwable] = cats.effect.IO.ioConcurrentEffect
-    def monadG: Monad[UIO] = cats.effect.unexceptional.UIO.catsEffectMonadForUIO
+    val monadErrorF: MonadError[IO, Throwable] = cats.effect.IO.ioConcurrentEffect
+    val monadG: Monad[UIO] = cats.effect.unexceptional.UIO.catsEffectMonadForUIO
 
     override def endeavor[A](fa: IO[A]): UIO[Either[Throwable, A]] = UIO.fromIO(fa)
 
@@ -92,8 +92,8 @@ object MonadBlunder {
 
       import cats.instances.future._
 
-      def monadErrorF: MonadError[Future, Throwable] = catsStdInstancesForFuture
-      def monadG: Monad[Unexceptional[Future, ?]] =
+      val monadErrorF: MonadError[Future, Throwable] = catsStdInstancesForFuture
+      val monadG: Monad[Unexceptional[Future, ?]] =
         Unexceptional.catsEffectMonadForUnexceptional[Future]
 
       def handleBlunderWith[A](fa: Future[A])(f: Throwable => Unexceptional[Future, A]): Unexceptional[Future, A] =
@@ -105,8 +105,8 @@ object MonadBlunder {
 
   implicit def catsEndeavorForEither[E]: MonadBlunder[Either[E, ?], Id, E] =
     new MonadBlunder[Either[E, ?], Id, E] {
-      def monadErrorF: MonadError[Either[E, ?], E] = cats.instances.either.catsStdInstancesForEither
-      def monadG: Monad[Id] = cats.catsInstancesForId
+      val monadErrorF: MonadError[Either[E, ?], E] = cats.instances.either.catsStdInstancesForEither
+      val monadG: Monad[Id] = cats.catsInstancesForId
 
       def handleBlunderWith[A](fa: Either[E, A])(f: E => A): A = fa match {
         case Left(e) => f(e)
@@ -118,8 +118,8 @@ object MonadBlunder {
 
   implicit def catsEndeavorForEitherT[F[_]: Monad, E]: MonadBlunder[EitherT[F, E, ?], F, E] =
     new MonadBlunder[EitherT[F, E, ?], F, E] {
-      def monadErrorF: MonadError[EitherT[F, E, ?], E] = EitherT.catsDataMonadErrorForEitherT
-      def monadG: Monad[F] = Monad[F]
+      val monadErrorF: MonadError[EitherT[F, E, ?], E] = EitherT.catsDataMonadErrorForEitherT
+      val monadG: Monad[F] = Monad[F]
 
       def handleBlunderWith[A](fa: EitherT[F, E, A])(f: E => F[A]): F[A] =
         fa.value.flatMap {
@@ -134,8 +134,8 @@ object MonadBlunder {
 
   implicit def catsEndeavorForOption: MonadBlunder[Option, Id, Unit] =
     new MonadBlunder[Option, Id, Unit] {
-      def monadErrorF: MonadError[Option, Unit] = cats.instances.option.catsStdInstancesForOption
-      def monadG: Monad[Id] = cats.catsInstancesForId
+      val monadErrorF: MonadError[Option, Unit] = cats.instances.option.catsStdInstancesForOption
+      val monadG: Monad[Id] = cats.catsInstancesForId
 
       def handleBlunderWith[A](fa: Option[A])(f: Unit => A): A = fa match {
         case Some(a) => a
@@ -147,8 +147,8 @@ object MonadBlunder {
 
   implicit def catsEndeavorForOptionT[F[_]: Monad, E]: MonadBlunder[OptionT[F, ?], F, Unit] =
     new MonadBlunder[OptionT[F, ?], F, Unit] {
-      def monadErrorF: MonadError[OptionT[F, ?], Unit] = new OptionTMonadError[F] {def F: Monad[F] = Monad[F]}
-      def monadG: Monad[F] = Monad[F]
+      val monadErrorF: MonadError[OptionT[F, ?], Unit] = new OptionTMonadError[F] {def F: Monad[F] = Monad[F]}
+      val monadG: Monad[F] = Monad[F]
 
       def handleBlunderWith[A](fa: OptionT[F, A])(f: Unit => F[A]): F[A] =
         fa.value.flatMap {
@@ -167,8 +167,8 @@ object MonadBlunder {
       implicit val F: MonadError[F, E] = M.monadErrorF
       implicit val G: Monad[G] = M.monadG
 
-      def monadErrorF: MonadError[StateT[F, S, ?], E] = IndexedStateT.catsDataMonadErrorForIndexedStateT
-      def monadG: Monad[StateT[G, S, ?]] = IndexedStateT.catsDataMonadForIndexedStateT
+      val monadErrorF: MonadError[StateT[F, S, ?], E] = IndexedStateT.catsDataMonadErrorForIndexedStateT
+      val monadG: Monad[StateT[G, S, ?]] = IndexedStateT.catsDataMonadForIndexedStateT
 
       def accept[A](ga: StateT[G, S, A]): StateT[F, S, A] = ga.mapK(new (G ~> F) {
         def apply[T](ga: G[T]): F[T] = M.accept(ga)
