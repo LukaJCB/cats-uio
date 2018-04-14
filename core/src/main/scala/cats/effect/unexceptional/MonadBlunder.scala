@@ -21,13 +21,11 @@ trait MonadBlunder[F[_], G[_], E] {
   def endeavorT[A](fa: F[A]): EitherT[G, E, A] =
     EitherT(endeavor(fa))
 
-
   def handleBlunder[A](fa: F[A])(f: E => A): G[A] =
     handleBlunderWith(fa)(f andThen monadG.pure)
 
-
   def absolve[A](gea: G[Either[E, A]]): F[A] =
-    monadErrorF.rethrow(accept(gea))
+    monadErrorF.flatMap(accept(gea))(_.fold(monadErrorF.raiseError, monadErrorF.pure))
 
   def assure[A](ga: G[A])(error: => E)(predicate: A => Boolean): F[A] =
     assureOr(ga)(_ => error)(predicate)
@@ -54,6 +52,9 @@ object MonadBlunder {
                       (predicate: A => Boolean)
                       (implicit M: MonadBlunder[F, G, E], E: Eq[F[A]]): Boolean =
       M.monadErrorF.ensureOr(M.accept(ga))(error)(predicate) === M.assureOr(ga)(error)(predicate)
+
+    def bindAlwaysWorksInG(ga: G[A], a: A)(implicit M: MonadBlunder[F, G, E], E: Eq[G[A]]): Boolean =
+      M.monadG.flatMap(ga)(_ => M.monadG.pure(a)) === M.monadG.pure(a)
 
     def raiseErrorHandleBlunderWith(e: E, f: E => G[A])
                                    (implicit M: MonadBlunder[F, G, E], E: Eq[G[A]]): Boolean =

@@ -28,6 +28,12 @@ class MonadBlunderSuite extends CatsSuite {
     }
   }
 
+  test("MonadBlunder[Either].bindAlwaysWorksInG") {
+    forAll { (i: Int, ga: Int) =>
+      monadBlunderEitherLaws.bindAlwaysWorksInG(ga, i)
+    }
+  }
+
   test("MonadBlunder[Either].raiseErrorHandleBlunderWith") {
     forAll { (s: String, f: String => Int) =>
       monadBlunderEitherLaws.raiseErrorHandleBlunderWith(s, f)

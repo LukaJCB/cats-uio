@@ -38,6 +38,12 @@ class UIOTestSuite extends CatsSuite {
     }
   }
 
+  test("MonadBlunder[IO].bindAlwaysWorksInG") {
+    forAll { (i: Int, ga: UIO[Int]) =>
+      monadBlunderIOLaws.bindAlwaysWorksInG(ga, i)
+    }
+  }
+
   test("MonadBlunder[IO].raiseErrorHandleBlunderWith") {
     forAll { (s: Throwable, f: Throwable => UIO[Int]) =>
       monadBlunderIOLaws.raiseErrorHandleBlunderWith(s, f)
