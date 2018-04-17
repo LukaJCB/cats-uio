@@ -6,9 +6,9 @@ import cats.Id
 //import cats.effect.unexceptional.tests.TestingInstances._
 
 
-class MonadBlunderSuite extends CatsSuite {
+class ErrorControlSuite extends CatsSuite {
 
-  val monadBlunderEitherLaws = new MonadBlunder.MonadBlunderLaws[Either[String, ?], Id, String, Int] {}
+  val monadBlunderEitherLaws = new ErrorControl.MonadBlunderLaws[Either[String, ?], Id, String, Int] {}
 
   test("MonadBlunder[Either].deriveAttempt") {
     forAll { (either: Either[String, Int]) =>
@@ -29,8 +29,8 @@ class MonadBlunderSuite extends CatsSuite {
   }
 
   test("MonadBlunder[Either].bindAlwaysWorksInG") {
-    forAll { (i: Int, ga: Int) =>
-      monadBlunderEitherLaws.bindAlwaysWorksInG(ga, i)
+    forAll { (f: String => Int, ga: Int) =>
+      monadBlunderEitherLaws.gNeverHasErrors(ga, f)
     }
   }
 

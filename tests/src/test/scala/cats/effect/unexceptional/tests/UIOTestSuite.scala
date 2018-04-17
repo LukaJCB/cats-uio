@@ -18,7 +18,7 @@ class UIOTestSuite extends CatsSuite {
 
   checkAll("Parallel[UIO, UIO.Par]", ParallelTests[UIO, UIO.Par].parallel[Int, String])
 
-  val monadBlunderIOLaws = new MonadBlunder.MonadBlunderLaws[IO, UIO, Throwable, Int] {}
+  val monadBlunderIOLaws = new ErrorControl.MonadBlunderLaws[IO, UIO, Throwable, Int] {}
 
   test("MonadBlunder[IO].deriveAttempt") {
     forAll { (io: IO[Int]) =>
@@ -39,8 +39,8 @@ class UIOTestSuite extends CatsSuite {
   }
 
   test("MonadBlunder[IO].bindAlwaysWorksInG") {
-    forAll { (i: Int, ga: UIO[Int]) =>
-      monadBlunderIOLaws.bindAlwaysWorksInG(ga, i)
+    forAll { (f: Throwable => Int, ga: UIO[Int]) =>
+      monadBlunderIOLaws.gNeverHasErrors(ga, f)
     }
   }
 
